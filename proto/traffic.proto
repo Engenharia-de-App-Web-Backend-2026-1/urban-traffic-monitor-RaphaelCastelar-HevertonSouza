@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package traffic;
+
+service TrafficAnalyzer {
+  rpc AnalyzeTraffic (TrafficReading) returns (AnalysisResult);
+}
+
+message TrafficReading {
+  string reading_id = 1;
+  string sensor_id = 2;
+  double latitude = 3;
+  double longitude = 4;
+  double average_speed_kmh = 5;
+  int32 vehicle_count = 6;
+  double occupancy_percent = 7;
+  string captured_at = 8;
+}
+
+message AnalysisResult {
+  string reading_id = 1;
+  string status = 2;
+  bool accident_detected = 3;
+  string event_id = 4;
+  string severity = 5;
+  string message = 6;
+}
