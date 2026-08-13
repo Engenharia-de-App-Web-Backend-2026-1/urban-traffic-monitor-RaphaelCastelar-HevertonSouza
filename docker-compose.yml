@@ -1,0 +1,60 @@
+services:
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  traffic-analyzer:
+    build: .
+    command: npm run start:analyzer
+    environment:
+      GRPC_PORT: 50051
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "50051:50051"
+
+  ingestion-api:
+    build: .
+    command: npm run start:ingestion
+    environment:
+      INGESTION_PORT: 3000
+      GRPC_ADDRESS: traffic-analyzer:50051
+    depends_on:
+      - traffic-analyzer
+    ports:
+      - "3000:3000"
+
+  dashboard-1:
+    build: .
+    command: npm run start:dashboard
+    environment:
+      DASHBOARD_PORT: 8080
+      INSTANCE_ID: central-norte
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+
+  dashboard-2:
+    build: .
+    command: npm run start:dashboard
+    environment:
+      DASHBOARD_PORT: 8080
+      INSTANCE_ID: central-sul
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "8082:8080"
