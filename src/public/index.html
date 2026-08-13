@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Central de Trânsito</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; }
+    body { margin: 0; background: #07111f; color: #e8f0f8; }
+    header { padding: 24px clamp(20px,5vw,64px); display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #20334a; }
+    h1 { margin:0; font-size:clamp(1.25rem,3vw,2rem); }
+    #connection { color:#68e1a7; }
+    main { padding:32px clamp(20px,5vw,64px); max-width:1100px; margin:auto; }
+    .summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:24px; }
+    .card,.alert { background:#101e30; border:1px solid #20334a; border-radius:12px; padding:18px; }
+    .value { font-size:1.5rem; font-weight:700; margin-top:8px; }
+    .alert { border-left:5px solid #ff5f57; margin:12px 0; animation:appear .25s ease-out; }
+    .alert h2 { margin:0 0 8px; font-size:1.1rem; }
+    .meta { color:#9db0c5; font-size:.9rem; line-height:1.6; }
+    .empty { color:#9db0c5; text-align:center; padding:48px; }
+    @keyframes appear { from { opacity:0; transform:translateY(-8px) } }
+  </style>
+</head>
+<body>
+  <header><h1>Central de Monitoramento Urbano</h1><span id="connection">Conectando...</span></header>
+  <main>
+    <section class="summary">
+      <article class="card">Instância<div class="value" id="instance">--</div></article>
+      <article class="card">Alertas recebidos<div class="value" id="count">0</div></article>
+      <article class="card">Último evento<div class="value" id="last">--:--:--</div></article>
+    </section>
+    <section id="alerts"><div class="empty">Nenhum acidente detectado.</div></section>
+  </main>
+  <script>
+    const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+    const socket = new WebSocket(`${protocol}://${location.host}/alerts`);
+    const alerts = document.querySelector('#alerts');
+    let count = 0;
+    socket.onopen = () => document.querySelector('#connection').textContent = 'Conectado';
+    socket.onclose = () => document.querySelector('#connection').textContent = 'Desconectado';
+    socket.onmessage = ({ data }) => {
+      const event = JSON.parse(data);
+      if (event.type === 'CONNECTED') {
+        document.querySelector('#instance').textContent = event.instanceId;
+        return;
+      }
+      if (count === 0) alerts.innerHTML = '';
+      count += 1;
+      document.querySelector('#count').textContent = count;
+      document.querySelector('#last').textContent = new Date(event.detectedAt).toLocaleTimeString();
+      const article = document.createElement('article');
+      article.className = 'alert';
+      article.innerHTML = `<h2>${event.severity}: ${event.message}</h2>
+        <div class="meta">Sensor: ${event.sensorId} | Local: ${event.latitude}, ${event.longitude}<br>
+        Evento: ${event.eventId} | Entregue por: ${event.deliveredBy}</div>`;
+      alerts.prepend(article);
+    };
+  </script>
+</body>
+</html>
