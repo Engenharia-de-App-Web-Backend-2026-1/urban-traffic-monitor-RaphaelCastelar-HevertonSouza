@@ -1,0 +1,32 @@
+{
+  "name": "urban-traffic-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Ecossistema IoT para monitoramento de tráfego urbano com gRPC, RabbitMQ e WebSocket",
+  "scripts": {
+    "dev:ingestion": "tsx watch src/ingestion/server.ts",
+    "dev:analyzer": "tsx watch src/analyzer/server.ts",
+    "dev:dashboard": "tsx watch src/dashboard/server.ts",
+    "start:ingestion": "tsx src/ingestion/server.ts",
+    "start:analyzer": "tsx src/analyzer/server.ts",
+    "start:dashboard": "tsx src/dashboard/server.ts",
+    "build": "tsc --noEmit",
+    "test": "tsx --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.13.4",
+    "@grpc/proto-loader": "^0.8.0",
+    "amqplib": "^0.10.8",
+    "express": "^5.1.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.7",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.17.1",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2"
+  }
+}
