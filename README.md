@@ -19,6 +19,12 @@ Sensor -> HTTP/JSON -> Ingestion API -> gRPC/Protobuf -> Traffic Analyzer
 - Cada instância envia o evento aos navegadores que estão conectados a ela.
 - O protótipo considera acidente quando a velocidade é menor ou igual a 2 km/h e a ocupação é pelo menos 75%.
 
+## Arquitetura do código
+
+- Os controllers (entrypoints que lidam com HTTP, gRPC, WebSocket e mensageria) foram organizados na pasta `src/interfaces` para obedecer à Clean Architecture exigida pelo professor.
+- A lógica de negócio está isolada em `src/analyzer/analyzeTraffic.ts` como um Use Case.
+- Integrações (gRPC/proto, RabbitMQ) residem em `src/services` e são injetadas pelos controllers.
+
 ## Executar
 
 Requer Docker com Compose:
@@ -59,6 +65,8 @@ npm test
 ```
 
 Os serviços também podem ser iniciados separadamente pelos scripts `start:analyzer`, `start:ingestion` e `start:dashboard`. RabbitMQ precisa estar acessível pela URL configurada em `RABBITMQ_URL`.
+
+Consulte também o `ADR.md` para a justificativa arquitetural e trade-offs (gRPC para RPC interna, RabbitMQ fanout para broadcast, WebSocket para painéis de visualização).
 
 ## Endpoints
 

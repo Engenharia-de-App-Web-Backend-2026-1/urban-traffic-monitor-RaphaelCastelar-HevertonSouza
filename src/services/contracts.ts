@@ -11,15 +11,15 @@ export interface TrafficReading {
 
 export interface AnalysisResult {
   readingId: string;
-  status: 'NORMAL' | 'CONGESTED' | 'ACCIDENT';
+  status: "NORMAL" | "CONGESTED" | "ACCIDENT";
   accidentDetected: boolean;
   eventId: string;
-  severity: 'NONE' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  severity: "NONE" | "MEDIUM" | "HIGH" | "CRITICAL";
   message: string;
 }
 
 export interface AccidentEvent extends AnalysisResult {
-  type: 'ACCIDENT_DETECTED';
+  type: "ACCIDENT_DETECTED";
   sensorId: string;
   latitude: number;
   longitude: number;
