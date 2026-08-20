@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { analyzeTraffic } from "./analyzeTraffic.js";
-import type { TrafficReading } from "../services/contracts.js";
+import { analyzeTraffic } from "./usecases/analyzeTraffic.js";
+import type { TrafficReading } from "../shared/contracts.js";
 
 const baseReading: TrafficReading = {
   readingId: "reading-1",

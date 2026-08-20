@@ -21,9 +21,9 @@ Sensor -> HTTP/JSON -> Ingestion API -> gRPC/Protobuf -> Traffic Analyzer
 
 ## Arquitetura do código
 
-- Os controllers (entrypoints que lidam com HTTP, gRPC, WebSocket e mensageria) foram organizados na pasta `src/interfaces` para obedecer à Clean Architecture exigida pelo professor.
-- A lógica de negócio está isolada em `src/analyzer/analyzeTraffic.ts` como um Use Case.
-- Integrações (gRPC/proto, RabbitMQ) residem em `src/services` e são injetadas pelos controllers.
+- Cada microsserviço possui um `server.ts` de bootstrap e controllers de protocolo em sua própria pasta `interfaces`.
+- A lógica de negócio está isolada em `src/analyzer/usecases/analyzeTraffic.ts` como um Use Case.
+- Contratos e infraestrutura compartilhada (gRPC/proto e RabbitMQ) residem em `src/shared`; o publisher de alertas fica em `src/analyzer/services`.
 
 ## Executar
 

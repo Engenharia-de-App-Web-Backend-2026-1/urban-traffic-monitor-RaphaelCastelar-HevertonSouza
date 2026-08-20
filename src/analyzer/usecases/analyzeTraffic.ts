@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { AnalysisResult, TrafficReading } from "../services/contracts.js";
+import type { AnalysisResult, TrafficReading } from "../../shared/contracts.js";
 
 export function analyzeTraffic(reading: TrafficReading): AnalysisResult {
   const accident =

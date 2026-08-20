@@ -88,9 +88,9 @@ A introdução de protocolos não-HTTP (gRPC, WebSockets, AMQP) pode poluir as r
 
 ### Decisão de Design
 
-1. **Controllers em `src/interfaces`:** Todos os entrypoints (HTTP, gRPC, WebSocket e consumidores de filas) residem em `src/interfaces`. Eles traduzem protocolos e delegam apenas dados primitivos para Use Cases.
+1. **Controllers nas interfaces de cada microsserviço:** Os entrypoints HTTP, gRPC, WebSocket e consumidores de filas residem em `src/ingestion/interfaces`, `src/analyzer/interfaces` e `src/dashboard/interfaces`. Eles traduzem protocolos e delegam para Use Cases ou serviços.
 2. **Use Cases (regras de negócio) isolados:** A lógica central — por exemplo `analyzeTraffic` — vive numa camada que não conhece bibliotecas de infraestrutura.
-3. **Infraestrutura em `src/services`:** Implementações concretas (cliente gRPC, RabbitMQ, helpers) ficam em `src/services`.
+3. **Infraestrutura compartilhada em `src/shared`:** Implementações concretas de gRPC/proto e RabbitMQ, além dos contratos compartilhados, ficam em `src/shared`. Serviços específicos de domínio ficam no respectivo diretório `services`.
 
 ### Consequências
 

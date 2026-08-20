@@ -5,12 +5,12 @@
   "type": "module",
   "description": "Ecossistema IoT para monitoramento de tráfego urbano com gRPC, RabbitMQ e WebSocket",
   "scripts": {
-    "dev:ingestion": "tsx watch src/interfaces/ingestionController.ts",
-    "dev:analyzer": "tsx watch src/interfaces/analyzerController.ts",
-    "dev:dashboard": "tsx watch src/interfaces/dashboardController.ts",
-    "start:ingestion": "tsx src/interfaces/ingestionController.ts",
-    "start:analyzer": "tsx src/interfaces/analyzerController.ts",
-    "start:dashboard": "tsx src/interfaces/dashboardController.ts",
+    "dev:ingestion": "tsx watch src/ingestion/server.ts",
+    "dev:analyzer": "tsx watch src/analyzer/server.ts",
+    "dev:dashboard": "tsx watch src/dashboard/server.ts",
+    "start:ingestion": "tsx src/ingestion/server.ts",
+    "start:analyzer": "tsx src/analyzer/server.ts",
+    "start:dashboard": "tsx src/dashboard/server.ts",
     "build": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",
     "cleanup": "node ./tools/cleanupEmptyDirs.js"
