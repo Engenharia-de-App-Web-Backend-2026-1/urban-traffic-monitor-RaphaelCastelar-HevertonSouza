@@ -1,15 +1,15 @@
-import amqp, { Channel, ChannelModel } from "amqplib";
+import amqp, { ChannelModel, ConfirmChannel } from "amqplib";
 
 export const ALERT_EXCHANGE = "traffic.alerts";
 
 export async function connectRabbitMQ(
   url: string,
-): Promise<{ connection: ChannelModel; channel: Channel }> {
+): Promise<{ connection: ChannelModel; channel: ConfirmChannel }> {
   let attempt = 0;
   while (true) {
     try {
       const connection = await amqp.connect(url);
-      const channel = await connection.createChannel();
+      const channel = await connection.createConfirmChannel();
       await channel.assertExchange(ALERT_EXCHANGE, "fanout", { durable: true });
       return { connection, channel };
     } catch (error) {

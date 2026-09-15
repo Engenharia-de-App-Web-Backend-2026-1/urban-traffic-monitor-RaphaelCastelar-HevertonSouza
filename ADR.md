@@ -96,3 +96,32 @@ A introdução de protocolos não-HTTP (gRPC, WebSockets, AMQP) pode poluir as r
 
 - Facilita testes unitários da lógica de negócio.
 - Permite trocar implementações de infraestrutura sem tocar nos Use Cases.
+
+---
+
+## ADR 04: Persistência e publicação com Transactional Outbox
+
+- **Status:** Aceito
+- **Data:** 15/09/2026
+
+### Contexto
+
+Ao persistir uma análise e publicar um alerta diretamente no RabbitMQ, duas escritas independentes passam a compor a mesma operação de negócio. Uma falha entre elas pode deixar uma análise sem alerta ou publicar um alerta cuja análise não foi gravada. PostgreSQL e RabbitMQ não compartilham uma transação ACID.
+
+### Alternativas consideradas
+
+- Gravar no PostgreSQL e publicar diretamente no RabbitMQ (dual write)
+- Transação distribuída/two-phase commit (2PC)
+- Transactional Outbox com relay por polling
+
+### Decisão
+
+Usar **Transactional Outbox** no Traffic Analyzer. A leitura, a análise e o evento são inseridos na mesma transação PostgreSQL. Um relay assíncrono reivindica eventos com `FOR UPDATE SKIP LOCKED`, publica usando publisher confirms e, após a confirmação, marca-os como publicados.
+
+O `readingId` é usado como chave de idempotência da entrada, e o `eventId` como chave de deduplicação no consumidor.
+
+### Consequências
+
+- **Positivas:** não há janela capaz de confirmar a análise sem registrar a intenção de publicar; eventos pendentes sobrevivem à indisponibilidade do RabbitMQ; múltiplos relays podem trabalhar sem publicar o mesmo registro simultaneamente.
+- **Negativas:** consistência entre banco e broker é eventual; existe pequena latência do polling; uma queda após a confirmação do broker e antes do update da outbox pode gerar duplicata.
+- **Garantia:** entrega pelo menos uma vez. Consumidores precisam ser idempotentes.

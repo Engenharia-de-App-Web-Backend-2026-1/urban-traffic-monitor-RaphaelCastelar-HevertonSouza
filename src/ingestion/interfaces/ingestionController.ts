@@ -42,6 +42,10 @@ export function createIngestionController(analyzerClient: any): Express {
 
 function validateReading(body: Record<string, unknown>): string | null {
   if (!body || typeof body !== "object") return "Corpo JSON obrigatório";
+  if (
+    body.readingId !== undefined &&
+    (typeof body.readingId !== "string" || body.readingId.trim() === "")
+  ) return "readingId deve ser uma string não vazia";
   if (typeof body.sensorId !== "string" || body.sensorId.trim() === "")
     return "sensorId é obrigatório";
   const numericFields = [
@@ -54,5 +58,19 @@ function validateReading(body: Record<string, unknown>): string | null {
   const occupancy = Number(body.occupancyPercent);
   if (occupancy < 0 || occupancy > 100)
     return "occupancyPercent deve estar entre 0 e 100";
+  const latitude = Number(body.latitude);
+  if (latitude < -90 || latitude > 90)
+    return "latitude deve estar entre -90 e 90";
+  const longitude = Number(body.longitude);
+  if (longitude < -180 || longitude > 180)
+    return "longitude deve estar entre -180 e 180";
+  if (Number(body.averageSpeedKmh) < 0)
+    return "averageSpeedKmh não pode ser negativo";
+  if (!Number.isInteger(Number(body.vehicleCount)) || Number(body.vehicleCount) < 0)
+    return "vehicleCount deve ser um inteiro não negativo";
+  if (
+    body.capturedAt !== undefined &&
+    (typeof body.capturedAt !== "string" || Number.isNaN(Date.parse(body.capturedAt)))
+  ) return "capturedAt deve ser uma data ISO válida";
   return null;
 }

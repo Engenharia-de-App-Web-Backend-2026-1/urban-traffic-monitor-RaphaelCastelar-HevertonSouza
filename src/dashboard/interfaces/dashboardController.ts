@@ -4,6 +4,8 @@ import { WebSocket, WebSocketServer } from "ws";
 import { ALERT_EXCHANGE } from "../../shared/rabbitmq.js";
 
 export class DashboardController {
+  private readonly seenEventIds = new Set<string>();
+
   constructor(
     private readonly channel: Channel,
     private readonly instanceId: string,
@@ -38,6 +40,11 @@ export class DashboardController {
     await this.channel.consume(queue.queue, (message) => {
       if (!message) return;
       const event = JSON.parse(message.content.toString());
+      if (this.seenEventIds.has(event.eventId)) {
+        this.channel.ack(message);
+        return;
+      }
+      this.remember(event.eventId);
       const payload = JSON.stringify({ ...event, deliveredBy: this.instanceId });
       let delivered = 0;
       for (const client of webSocketServer.clients) {
@@ -49,5 +56,13 @@ export class DashboardController {
       console.log(`${event.eventId} entregue a ${delivered} painel(is) por ${this.instanceId}`);
       this.channel.ack(message);
     });
+  }
+
+  private remember(eventId: string): void {
+    this.seenEventIds.add(eventId);
+    if (this.seenEventIds.size > 10000) {
+      const oldest = this.seenEventIds.values().next().value;
+      if (oldest) this.seenEventIds.delete(oldest);
+    }
   }
 }
