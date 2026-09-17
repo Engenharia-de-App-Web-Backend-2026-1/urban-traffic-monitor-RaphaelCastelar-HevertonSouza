@@ -1,0 +1,65 @@
+{
+  "info": {
+    "_postman_id": "97524e65-8d34-42d0-b501-urban-traffic-monitor",
+    "name": "Urban Traffic Monitor",
+    "description": "Health check e exemplos de telemetria para o Urban Traffic Monitor.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" }
+  ],
+  "item": [
+    {
+      "name": "Health check da API",
+      "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/health" }
+    },
+    {
+      "name": "Leitura normal",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"readingId\": \"postman-normal-001\",\n  \"sensorId\": \"radar-101\",\n  \"latitude\": -23.5505,\n  \"longitude\": -46.6333,\n  \"averageSpeedKmh\": 50,\n  \"vehicleCount\": 20,\n  \"occupancyPercent\": 30\n}"
+        },
+        "url": "{{baseUrl}}/api/v1/readings"
+      }
+    },
+    {
+      "name": "Leitura congestionada",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"readingId\": \"postman-congestionado-001\",\n  \"sensorId\": \"radar-102\",\n  \"latitude\": -23.5505,\n  \"longitude\": -46.6333,\n  \"averageSpeedKmh\": 15,\n  \"vehicleCount\": 55,\n  \"occupancyPercent\": 70\n}"
+        },
+        "url": "{{baseUrl}}/api/v1/readings"
+      }
+    },
+    {
+      "name": "Acidente",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"readingId\": \"postman-acidente-001\",\n  \"sensorId\": \"radar-104\",\n  \"latitude\": -23.5505,\n  \"longitude\": -46.6333,\n  \"averageSpeedKmh\": 0,\n  \"vehicleCount\": 87,\n  \"occupancyPercent\": 95\n}"
+        },
+        "url": "{{baseUrl}}/api/v1/readings"
+      }
+    },
+    {
+      "name": "Reenvio idempotente do acidente",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"readingId\": \"postman-acidente-001\",\n  \"sensorId\": \"radar-104\",\n  \"latitude\": -23.5505,\n  \"longitude\": -46.6333,\n  \"averageSpeedKmh\": 0,\n  \"vehicleCount\": 87,\n  \"occupancyPercent\": 95\n}"
+        },
+        "url": "{{baseUrl}}/api/v1/readings"
+      }
+    }
+  ]
+}

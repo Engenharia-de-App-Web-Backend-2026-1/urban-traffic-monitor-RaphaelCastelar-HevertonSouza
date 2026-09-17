@@ -43,41 +43,73 @@ Optamos por **WebSocket** para a entrega em tempo real aos painéis.
 
 ---
 
-## ADR 02: Padrão de Comunicação Interna e Processamento (API ↔ Analyzer / Broadcast)
+## ADR 02: Comunicação interna síncrona (API → Analyzer)
 
 - **Status:** Aceito
 - **Data:** 20/08/2026
 
 ### Contexto
 
-Requisitos: (1) RPC rápido e eficiente entre API de ingestão e microsserviço de análise; (2) quando um acidente for detectado, propagar esse evento para todas as instâncias do dashboard.
+A API de ingestão precisa enviar uma leitura ao microsserviço de análise, aguardar sua classificação e devolver o resultado ao sensor com baixa latência. Essa interação é requisição/resposta, possui contrato estável e ocorre apenas entre serviços internos.
 
 ### Alternativas Consideradas
 
 - Comunicação síncrona HTTP/REST interna
-- Redis Pub/Sub
-- RabbitMQ (AMQP)
 - gRPC
+- RabbitMQ (AMQP)
 
 ### Decisão
 
-- Usar **gRPC** para a chamada RPC entre a API de ingestão e o `Traffic Analyzer`.
-- Usar **RabbitMQ (exchange fanout)** para broadcast de eventos de acidente entre instâncias.
+Usar **gRPC unary com Protocol Buffers** entre a API de ingestão e o `Traffic Analyzer`.
 
 ### Justificativa (Trade-offs)
 
-- gRPC: serialização Protobuf (binária) reduz CPU e banda; suportes a deadlines/timeouts e contratos fortemente tipados.
-- RabbitMQ fanout: permite que cada instância crie uma fila exclusiva ligada à exchange; garante que cada instância ativa receba o alerta sem conhecimento mútuo.
-- Redis Pub/Sub foi descartado por natureza volátil (mensagens perdidas se consumidores estiverem offline). HTTP/REST interno foi descartado por maior overhead.
+- Protobuf fornece um contrato explícito e uma representação binária compacta; gRPC oferece deadline e status padronizados.
+- HTTP/REST seria mais simples para inspeção manual, mas repetiria serialização JSON e não aproveitaria o contrato `.proto` da comunicação interna.
+- RabbitMQ não foi escolhido para essa interação porque a API precisa da resposta da análise na mesma requisição. O broker é usado somente no fluxo assíncrono de alertas.
 
 ### Consequências
 
-- **Positivas:** Baixa latência interna; desacoplamento entre recepção e distribuição de alertas; facilidade de escalar instâncias do dashboard.
-- **Negativas:** Requer operação de broker (RabbitMQ) em produção; atenção a durabilidade, DLQ e observabilidade.
+- **Positivas:** Contrato fortemente definido, payload compacto e deadline de três segundos na chamada.
+- **Negativas / Pontos de Atenção:** A API fica temporalmente acoplada ao Analyzer; se ele estiver indisponível, a API responde `503`. Clientes externos não precisam conhecer gRPC, pois continuam usando HTTP/JSON.
 
 ---
 
-## ADR 03: Adaptação à Clean Architecture
+## ADR 03: Mensageria e broadcast de alertas (Analyzer → Dashboards)
+
+- **Status:** Aceito
+- **Data:** 20/08/2026
+
+### Contexto
+
+Quando um acidente é detectado, todas as instâncias de dashboard que estiverem ativas devem receber uma cópia do alerta. Uma fila única com consumidores concorrentes entregaria cada mensagem a apenas uma instância e, portanto, não atenderia ao broadcast.
+
+### Alternativas Consideradas
+
+- Chamadas HTTP do Analyzer para cada dashboard
+- Redis Pub/Sub
+- RabbitMQ com uma fila compartilhada
+- RabbitMQ com exchange `fanout` e uma fila por instância
+
+### Decisão
+
+Usar **RabbitMQ/AMQP 0-9-1**, com exchange `fanout` durável e uma fila exclusiva, temporária e vinculada à exchange para cada instância ativa do dashboard.
+
+### Justificativa (Trade-offs)
+
+- A exchange `fanout` copia cada alerta para todas as filas vinculadas sem exigir que o produtor conheça as instâncias.
+- Uma única fila distribuiria as mensagens entre consumidores, em vez de replicá-las.
+- Chamadas HTTP exigiriam descoberta das instâncias e tornariam o Analyzer responsável por falhas individuais.
+- Redis Pub/Sub também faria broadcast, mas não oferece acknowledgements e filas com as mesmas garantias do RabbitMQ.
+
+### Consequências
+
+- **Positivas:** Desacoplamento do produtor, escala horizontal dos dashboards e confirmação explícita do consumo por fila.
+- **Negativas / Pontos de Atenção:** Exige operar o broker. Como as filas são exclusivas e temporárias, uma central offline não recupera alertas antigos; isso é intencional para o requisito de instâncias ativas.
+
+---
+
+## ADR 04: Adaptação à Clean Architecture
 
 - **Status:** Aceito
 - **Data:** 20/08/2026
@@ -88,9 +120,10 @@ A introdução de protocolos não-HTTP (gRPC, WebSockets, AMQP) pode poluir as r
 
 ### Decisão de Design
 
-1. **Controllers nas interfaces de cada microsserviço:** Os entrypoints HTTP, gRPC, WebSocket e consumidores de filas residem em `src/ingestion/interfaces`, `src/analyzer/interfaces` e `src/dashboard/interfaces`. Eles traduzem protocolos e delegam para Use Cases ou serviços.
-2. **Use Cases (regras de negócio) isolados:** A lógica central — por exemplo `analyzeTraffic` — vive numa camada que não conhece bibliotecas de infraestrutura.
-3. **Infraestrutura compartilhada em `src/shared`:** Implementações concretas de gRPC/proto e RabbitMQ, além dos contratos compartilhados, ficam em `src/shared`. Serviços específicos de domínio ficam no respectivo diretório `services`.
+1. **Adaptadores de entrada em `interfaces`:** HTTP, gRPC, AMQP e WebSocket ficam nas bordas dos respectivos serviços e traduzem protocolos para os dados da aplicação.
+2. **Casos de uso isolados:** `ProcessTrafficReading` orquestra a análise e a persistência, enquanto `analyzeTraffic` contém a regra pura. Nenhum deles importa Express, gRPC, RabbitMQ ou PostgreSQL.
+3. **Inversão de dependência:** o caso de uso depende da interface `TrafficAnalysisRepository`, definida em `ports`. A implementação `PostgresTrafficAnalysisRepository` fica em `infrastructure` e é injetada pelo `server.ts`.
+4. **Composition roots:** cada `server.ts` instancia os adaptadores e conecta as dependências. Código de conexão e contratos entre serviços ficam em `src/shared`.
 
 ### Consequências
 
@@ -99,7 +132,7 @@ A introdução de protocolos não-HTTP (gRPC, WebSockets, AMQP) pode poluir as r
 
 ---
 
-## ADR 04: Persistência e publicação com Transactional Outbox
+## ADR 05: Persistência e publicação com Transactional Outbox
 
 - **Status:** Aceito
 - **Data:** 15/09/2026
